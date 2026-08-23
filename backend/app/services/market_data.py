@@ -10,7 +10,7 @@ from app.database import get_connection
 
 load_dotenv()
 
-ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+TWELVE_DATA_API_KEY = os.getenv("TWELVE_DATA_API_KEY")
 
 
 def get_cached_market_data(symbol):
@@ -60,14 +60,21 @@ def get_market_data(symbol):
         print(f"Returning cached data for {symbol}")
         return cached_data
 
-    print(f"No cache found for {symbol}. Calling Alpha Vantage.")
+    print(f"No cache found for {symbol}. Calling Twelve Data.")
 
-    url = "https://www.alphavantage.co/query"
+    if not TWELVE_DATA_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Twelve Data API key is not configured"
+        )
+
+    url = "https://api.twelvedata.com/time_series"
 
     params = {
-        "function": "TIME_SERIES_DAILY",
         "symbol": symbol,
-        "apikey": ALPHA_VANTAGE_API_KEY
+        "interval": "1day",
+        "outputsize": 100,
+        "apikey": TWELVE_DATA_API_KEY,
     }
 
     try:
@@ -76,37 +83,46 @@ def get_market_data(symbol):
             params=params,
             timeout=10
         )
+
         response.raise_for_status()
         data = response.json()
 
-    except requests.RequestException:
+    except requests.RequestException as error:
+        print("TWELVE DATA REQUEST ERROR:", error)
+
         raise HTTPException(
             status_code=502,
             detail="Unable to connect to market data provider"
         )
 
-    time_series = data.get("Time Series (Daily)")
+    values = data.get("values")
 
-    if not time_series:
-        print("ALPHA VANTAGE ERROR:", data)
+    if not values:
+        print("TWELVE DATA ERROR:", data)
+
+        message = data.get(
+            "message",
+            "Market data provider did not return historical data"
+        )
 
         raise HTTPException(
             status_code=502,
-            detail="Market data provider did not return historical data"
+            detail=message
         )
 
     history = []
 
-    for date, values in time_series.items():
+    for item in values:
         history.append({
-            "date": date,
-            "open": float(values["1. open"]),
-            "high": float(values["2. high"]),
-            "low": float(values["3. low"]),
-            "close": float(values["4. close"]),
-            "volume": int(values["5. volume"])
+            "date": item["datetime"].split(" ")[0],
+            "open": float(item["open"]),
+            "high": float(item["high"]),
+            "low": float(item["low"]),
+            "close": float(item["close"]),
+            "volume": int(item.get("volume") or 0)
         })
 
+    # Newest date first
     history.sort(
         key=lambda item: item["date"],
         reverse=True
@@ -148,92 +164,3 @@ def get_market_data(symbol):
     save_market_data_to_cache(symbol, result)
 
     return result
-def test_successful_buy():
-    mock_market_data = {
-        "quote": {
-            "price": 100.00
-        }
-    }
-
-    mock_cursor = MagicMock()
-
-    # First fetchone() = portfolio cash
-    # Second fetchone() = existing holding (None means we don't own AAPL yet)
-    mock_cursor.fetchone.side_effect = [
-        {
-            "cash": Decimal("1000.00")
-        },
-        None
-    ]
-
-    mock_connection = MagicMock()
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-
-    with patch(
-        "app.routes.portfolio.get_market_data",
-        return_value=mock_market_data
-    ), patch(
-        "app.routes.portfolio.get_connection",
-        return_value=mock_connection
-    ):
-        response = client.post(
-            "/portfolio/buy",
-            json={
-                "symbol": "AAPL",
-                "shares": 2
-            }
-        )
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["message"] == "Purchase successful"
-    assert data["symbol"] == "AAPL"
-    assert data["shares"] == 2
-    assert data["price"] == 100.0
-    assert data["total_cost"] == 200.0
-
-def test_successful_sell():
-    mock_market_data = {
-        "quote": {
-            "price": 100.00
-        }
-    }
-
-    mock_cursor = MagicMock()
-
-    # Pretend we currently own 5 shares
-    mock_cursor.fetchone.return_value = {
-        "shares": Decimal("5")
-    }
-
-    mock_connection = MagicMock()
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-
-    with patch(
-        "app.routes.portfolio.get_market_data",
-        return_value=mock_market_data
-    ), patch(
-        "app.routes.portfolio.get_connection",
-        return_value=mock_connection
-    ):
-        response = client.post(
-            "/portfolio/sell",
-            json={
-                "symbol": "AAPL",
-                "shares": 2
-            }
-        )
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["message"] == "Sale successful"
-    assert data["symbol"] == "AAPL"
-    assert data["shares"] == 2
-    assert data["price"] == 100.0
-    assert data["sale_value"] == 200.0
