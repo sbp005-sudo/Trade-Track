@@ -22,7 +22,7 @@ TradeTrack is a full-stack paper trading application that lets users search stoc
 
 **Backend:** Python, FastAPI, PostgreSQL, Psycopg
 
-**Market Data:** Alpha Vantage API
+**Market Data:** Twelve Data API
 
 **Testing:** pytest, FastAPI TestClient, unittest.mock
 
@@ -64,7 +64,7 @@ The FastAPI backend is organized into separate layers:
 - **Models** define request schemas using Pydantic.
 - **Database utilities** manage PostgreSQL connections.
 
-Market data is cached in PostgreSQL to reduce unnecessary calls to the external stock-data API.
+Cache market data in PostgreSQL to reduce external API requests.
 
 ## Running TradeTrack Locally
 
@@ -92,7 +92,7 @@ pip install -r requirements.txt
 Create a `.env` file inside the `backend` folder with:
 
 ```env
-ALPHA_VANTAGE_API_KEY=your_api_key_here
+TWELVE_DATA_API_KEY=your_api_key_here
 DATABASE_URL=dbname=tradetrack
 ```
 
