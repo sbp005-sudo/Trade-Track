@@ -10,6 +10,9 @@ import {
 } from "recharts";
 import "./App.css";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 function App() {
   const [symbol, setSymbol] = useState("AAPL");
   const [stock, setStock] = useState(null);
@@ -76,9 +79,7 @@ function App() {
   // Get watchlist from PostgreSQL through FastAPI
   async function loadWatchlist() {
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/watchlist"
-      );
+      const response = await fetch(`${API_BASE_URL}/watchlist`);
 
       if (!response.ok) {
         throw new Error("Unable to load watchlist.");
@@ -92,9 +93,7 @@ function App() {
   }
   async function loadPortfolio() {
   try {
-    const response = await fetch(
-      "http://127.0.0.1:8000/portfolio"
-    );
+    const response = await fetch(`${API_BASE_URL}/portfolio`);
 
     if (!response.ok) {
       throw new Error("Unable to load portfolio.");
@@ -109,9 +108,7 @@ function App() {
 }
 async function loadTransactions() {
   try {
-    const response = await fetch(
-      "http://127.0.0.1:8000/transactions"
-    );
+    const response = await fetch(`${API_BASE_URL}/transactions`);
 
     if (!response.ok) {
       throw new Error("Unable to load transactions.");
@@ -143,7 +140,7 @@ async function loadTransactions() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/stock/${cleanedSymbol}/history`
+        `${API_BASE_URL}/stock/${cleanedSymbol}/history`
       );
 
       if (!response.ok) {
@@ -177,7 +174,7 @@ async function loadTransactions() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/watchlist",
+        `${API_BASE_URL}/watchlist`,
         {
           method: "POST",
           headers: {
@@ -214,7 +211,7 @@ async function loadTransactions() {
   async function removeFromWatchlist(symbolToRemove) {
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/watchlist/${symbolToRemove}`,
+        `${API_BASE_URL}/watchlist/${symbolToRemove}`,
         {
           method: "DELETE",
         }
@@ -249,7 +246,7 @@ async function loadTransactions() {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/portfolio/buy",
+      `${API_BASE_URL}/portfolio/buy`,
       {
         method: "POST",
         headers: {
@@ -294,7 +291,7 @@ async function sellStock() {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/portfolio/sell",
+      `${API_BASE_URL}/portfolio/sell`,
       {
         method: "POST",
         headers: {

@@ -5,6 +5,7 @@ from app.routes.portfolio import router as portfolio_router
 from app.routes.stocks import router as stocks_router
 from app.routes.transactions import router as transactions_router
 from app.routes.watchlist import router as watchlist_router
+import os
 
 
 app = FastAPI(
@@ -13,10 +14,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        FRONTEND_URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
