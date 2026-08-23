@@ -2,6 +2,10 @@
 
 TradeTrack is a full-stack paper trading application that lets users search stocks, view historical market data, create a persistent watchlist, and simulate buying and selling stocks with a virtual portfolio.
 
+## Live Demo
+
+[View TradeTrack](https://tradetrack-roan.vercel.app)
+
 ## Features
 
 - Search for stocks by ticker symbol
